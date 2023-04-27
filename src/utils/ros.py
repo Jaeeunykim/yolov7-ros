@@ -5,6 +5,7 @@ from sensor_msgs.msg import Image
 from vision_msgs.msg import Detection2DArray, Detection2D, BoundingBox2D, \
     ObjectHypothesisWithPose
 from geometry_msgs.msg import Pose2D
+from std_msgs.msg import Float64
 
 
 def create_header():
@@ -14,6 +15,12 @@ def create_header():
 
 
 def create_detection_msg(img_msg: Image, detections: torch.Tensor) -> Detection2DArray:
+
+    pub = rospy.Publisher('accuracy', Float64, queue_size=10)
+    acc_msg = Float64()
+    # rospy.init_node('talker', anonymous=True)
+    # rate = rospy.Rate(10)
+
     """
     :param img_msg: original ros image message
     :param detections: torch tensor of shape [num_boxes, 6] where each element is
@@ -54,6 +61,14 @@ def create_detection_msg(img_msg: Image, detections: torch.Tensor) -> Detection2
         obj_hyp.score = conf
         single_detection_msg.results = [obj_hyp]
 
-        detection_array_msg.detections.append(single_detection_msg)
+        # acc = str(conf)
+        # pub.publish(acc)
+
+        rospy.loginfo("accurancy : %f" %obj_hyp.score)
+        detection_array_msg.detections.append(single_detection_msg)        
+
+        if obj_hyp.score >= 0.5:
+            acc_msg.data =  conf
+            pub.publish(acc_msg)
 
     return detection_array_msg
